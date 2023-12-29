@@ -1,0 +1,155 @@
+<button id="the-button">Try it</button>
+<input type="checkbox" id="connect" value="Runoob">connected<br>
+<textarea id="tx" rows="3" cols="50"></textarea>
+<button id="send-btn" onclick=send()>Send</button>
+<textarea id="log" rows="20" cols="50"></textarea>
+
+<script>
+    //uuid 可以写0xfff0, 也可以是小写的字符串'0000fff0-0000-1000-8000-00805f9b34fb'
+    'use strict';
+    const button = document.querySelector('#the-button');
+    button.addEventListener('click', function() {
+        console.log('test ble..');
+        navigator.bluetooth.requestDevice({
+            acceptAllDevices: true
+        }).then(device => {
+            console.log('Got device:', device.name);
+            console.log('id:', device.id);
+        });
+    });
+
+    let gattServer;
+    let commandService;
+    let readCharacteristic;
+    let writeCharacteristic;
+    let commandQueue = [];
+    let busy = false;
+    let colorChangeListener;
+
+    const connect = document.querySelector('#connect');
+    connect.addEventListener('click', function() {
+        if (gattServer != null && gattServer.connected) {
+            gattServer.disconnect();
+            console.log('disconnect..');
+            gattServer = null;
+        }
+        else {
+            console.log('connecting...');
+            navigator.bluetooth.requestDevice({
+                filters: [{
+                  namePrefix: '@',
+                }],
+                optionalServices: ['0000fff0-0000-1000-8000-00805f9b34fb',
+                                   '0000fff1-0000-1000-8000-00805f9b34fb']
+            })
+            .then(device => {
+                console.log('Got device:', device.name);
+                console.log('id:', device.id);
+                return device.gatt.connect();
+            })
+            .then(server => {
+                console.log('server:', server);
+                gattServer = server;
+                return gattServer.getPrimaryService('0000fff0-0000-1000-8000-00805f9b34fb');
+            })
+            .then(service => {
+                console.log('> service:', service);
+                commandService = service;
+                return service.getCharacteristic(0xfff1);
+            })
+            .then(characteristic => {
+                console.log('> characteristic:', characteristic);
+                if (characteristic.properties.read) {
+                    readCharacteristic = characteristic;
+                    console.log('> characteristic has read');
+                    // characteristic.readValue().then(value => {
+                    //     console.log('> Read ' + value.getUint8(0));
+                    // });
+                }
+                if (characteristic.properties.write) {
+                    console.log('> characteristic has write');
+                    // characteristic.writeValue(new Uint8Array([0x01]));
+                    writeCharacteristic = characteristic;
+                    let cmd = new Uint8Array([0x1,0x64, 0, 0, 0, 0, 0, 0]);
+                    sendCommand(cmd);
+                }
+                
+                if (characteristic.properties.notify) {
+                    console.log('> characteristic has notify');
+                    return characteristic.startNotifications().then(_ => {
+                        console.log('> Notifications started');
+                        characteristic.addEventListener('characteristicvaluechanged',
+                            handleNotifications);
+                    });
+                }
+                else {
+                    console.log('> characteristic has no notify');
+                }
+            })
+            .catch(error => {
+                console.log('Argh! ' + error);
+            });
+        }
+    });
+
+    // ArrayBuffer转16进度字符串示例
+    function ab2hex(buffer) {
+        const hexArr = Array.prototype.map.call(
+            new Uint8Array(buffer),
+            function (bit) {
+            return (`00${bit.toString(16)}`).slice(-2)
+            }
+        )
+        return hexArr.join('')
+    }
+
+    function handleNotifications(event) {
+        let value = event.target.value;
+        console.log('> ' + ab2hex(value.buffer));
+        document.querySelector('#log').value += ab2hex(value.buffer) + '\n';
+    }
+
+    function send() {
+        // let cmd = new Uint8Array([0x1,0x64, 0, 0, 0, 0, 0, 0]);
+        let value = document.querySelector('#tx').value;
+        //convert string to Uint8Array
+        let ab = new TextEncoder().encode(value);
+        sendCommand(ab);
+    }
+
+    /**
+     * Send a command to the device.
+     * See http://wittidesign.com/en/developer/ for API.
+     *
+     * @param cmd The command bytes and associated data.
+     */
+    function sendCommand(cmd) {
+        if (writeCharacteristic) {
+            // Handle one command at a time
+            if (busy) {
+                // Queue commands
+                commandQueue.push(cmd);
+                return Promise.resolve();
+            }
+            busy = true;
+            
+
+            return writeCharacteristic.writeValue(cmd).then(() => {
+                console.log('call send' + cmd);
+                busy = false;
+                // Get next command from queue
+                let nextCommand = commandQueue.shift();
+                if (nextCommand) {
+                    sendCommand(nextCommand);
+                }
+            });
+        } 
+        else 
+        {
+            return Promise.resolve();
+        }
+    }
+    
+
+</script>
+
