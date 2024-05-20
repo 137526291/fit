@@ -444,7 +444,7 @@ export default {
         s = s.substring(2, s.length - 2);
       }
       else {
-        console.log('invalid upload string');
+        // console.log('invalid upload string');
         return;
       }
       let arr = s.split(',');
@@ -457,10 +457,10 @@ export default {
       this.variables['tempmos'] = parseInt(arr[6]);
       this.variables['fsm_raw'] = parseInt(arr[7]);
       this.variables['fsm_str'] = fsm2str[this.variables['fsm_raw']];
-      console.log('vac:' + this.variables['vac']);
-      console.log('vac_rms:' + this.variables['vac_rms']);
-      console.log('vdc:' + this.variables['vdc']);
-      console.log('ibus_ma:' + this.variables['ibus']);
+      // console.log('vac:' + this.variables['vac']);
+      // console.log('vac_rms:' + this.variables['vac_rms']);
+      // console.log('vdc:' + this.variables['vdc']);
+      // console.log('ibus_ma:' + this.variables['ibus']);
 
       // this.vac_rms = parseInt(arr[1]);
       // this.vdc = parseInt(arr[2]);

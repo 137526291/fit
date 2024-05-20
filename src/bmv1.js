@@ -559,7 +559,7 @@ export var Bmv1 = function(read, write, up_cb, receiver_type = BMV1_TYPE_M1101, 
         var res = dv.getUint8(0);
         var package_index = dv.getInt32(1, true);
         // print('package upgrade ack handler called', res, package_index)
-        var total_package_cnt = this.fw_size / this.UPPACK_SIZE;
+        var total_package_cnt = Math.floor( this.fw_size / this.UPPACK_SIZE );
         if (this.fw_size % this.UPPACK_SIZE) {
             total_package_cnt += 1;
         }
@@ -568,6 +568,7 @@ export var Bmv1 = function(read, write, up_cb, receiver_type = BMV1_TYPE_M1101, 
         // print("package upgrade ack ok. ack pack ", package_index, '/', upgrade_end_index)
         if (res == 0) {
             this.up_step += 1;
+            // console.log(`pack  index ${package_index}/${upgrade_end_index}`);
             if (package_index == this.up_last_pack_seq && package_index < upgrade_end_index) {
                 this.package_upgrade_req(this.UPPACK_SIZE, package_index + 1, 1);
                 // self.retry_timer.cancel()
@@ -608,7 +609,7 @@ export var Bmv1 = function(read, write, up_cb, receiver_type = BMV1_TYPE_M1101, 
         // var sha256_digest = sha256.hexdigest();
         var sha256_digest = new Uint8Array(32);
         var crc16 = this.__crc16_func(this.fw_data);
-        console.log('crc16=%04x' % crc16);
+        console.log(`crc16 of fw = ${crc16}`);
         // resv = bytearray(32)
         var data = new Uint8Array(52);
         // data = pack('<HH16s32s', firmware_digest_type, crc16, md5_digest, sha256_digest)   //little endian
