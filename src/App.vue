@@ -253,7 +253,7 @@ export default {
       // console.log('> ', (u8arr));
       // this.v1.rxdata.set(value.buffer);
       // this.v1.rxdata.buffer = this._appendBuffer(this.v1.rxdata.buffer, value.buffer);
-      // this.v1.rxdata_input(u8arr);
+      this.v1.rxdata_input(u8arr);
 
       //parse data
       /*
